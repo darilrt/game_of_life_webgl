@@ -1,0 +1,141 @@
+<html>
+    <head>
+        <link rel="stylesheet" href="css/editor.css" />
+        <script src="js/editor.js" ></script>
+    </head>
+    <body>
+        <canvas id="webgl-canvas"></canvas>
+        
+        <div id="controlls">
+            D - Next step
+            <br>
+            Space - Play/Stop
+            <br>
+            Click - Add/Remove cell
+            <br>
+            Wheel - Scale
+            <br>
+            Wheel Up/Down - Move
+            <br><br>
+            <a href="./?w=16&h=16">16x16</a><br>
+            <a href="./?w=64&h=64">64x64</a><br>
+            <a href="./?w=128&h=128">128x128</a><br>
+            <a href="./?w=256&h=256">256x256</a><br>
+            <a href="./?w=512&h=512">512x512</a><br>
+            <a href="./?w=1024&h=1024">1024x1024</a>
+        </div>
+        
+        <script id="vertex-shader" type="x-shader/x-vertex">
+            attribute vec4 position;
+            attribute vec2 texcoord;
+            
+            varying vec2 v_texcoord;
+
+            void main() {
+                gl_Position = position;
+                v_texcoord = texcoord;
+            }
+        </script>
+        
+        <script id="shader-gol-frag" type="x-shader/x-fragment">
+            precision mediump float;
+            varying vec2 v_texcoord;
+
+            uniform sampler2D u_texture;
+            uniform vec2 buffer_scale;
+            
+            void main() {
+                vec2 r = buffer_scale;
+                vec2 tc = (floor(v_texcoord * r) + 0.5);
+                
+                vec4 p = texture2D(u_texture, tc / r);
+                bool pb = bool(floor(p.r));
+                
+                vec4 c = texture2D(u_texture, (tc + vec2( 0, -1)) / r) +
+                         texture2D(u_texture, (tc + vec2( 0,  1)) / r) +
+                         texture2D(u_texture, (tc + vec2( 1, -1)) / r) +
+                         texture2D(u_texture, (tc + vec2( 1,  0)) / r) +
+                         texture2D(u_texture, (tc + vec2( 1,  1)) / r) +
+                         texture2D(u_texture, (tc + vec2(-1, -1)) / r) +
+                         texture2D(u_texture, (tc + vec2(-1,  0)) / r) +
+                         texture2D(u_texture, (tc + vec2(-1,  1)) / r);
+                         
+                int n = int(c.r);
+                
+                p.gb = pb ? p.gb : vec2(0.1, 0.105);
+                
+                pb = pb ? n > 3 ? false : n < 2 ? false : true : n == 3 ? true : false;
+                
+                gl_FragColor = vec4(float(pb), float(pb), float(pb), 1.0);
+                // gl_FragColor = p;
+            }
+        </script>
+        
+        <script id="shader-standar-frag" type="x-shader/x-fragment">
+            precision mediump float;
+            varying vec2 v_texcoord;
+
+            uniform sampler2D u_texture;
+            uniform vec2 buffer_scale;
+
+            void main() {
+                vec2 r = buffer_scale;
+                vec2 p = (floor(v_texcoord * r) + 0.5) / r;
+                
+                gl_FragColor = texture2D(u_texture, p);
+            }
+        </script>
+        
+        <script id="shader-point-frag" type="x-shader/x-fragment">
+            precision mediump float;
+            varying vec2 v_texcoord;
+
+            uniform sampler2D u_texture;
+            uniform vec2 point;
+            uniform vec2 buffer_scale;
+            
+            void main() {
+                vec2 r = buffer_scale;
+                vec2 pos = vec2(point.x, r.y - point.y) - 1.0;
+                vec2 coord = v_texcoord * r;
+                vec4 color = texture2D(u_texture, v_texcoord);
+                
+                if (int(coord.x) == int(pos.x) && int(coord.y) == int(pos.y)) {
+                    gl_FragColor = bool(color.r) ? vec4(0.0, 0.0, 0.0, 0.0) : vec4(1.0, 1.0, 1.0, 1.0);
+                }
+                else {
+                    gl_FragColor = color;
+                }
+            }
+        </script>
+        
+        <script id="shader-editor-frag" type="x-shader/x-fragment">
+            precision mediump float;
+            varying vec2 v_texcoord;
+
+            uniform sampler2D u_texture;
+            uniform vec2 resolution;
+            uniform vec2 offset;
+            uniform float scale;
+            uniform vec2 buffer_scale;
+
+            void main() {
+                vec2 r = buffer_scale;
+                vec2 v = v_texcoord * resolution - offset + (r * scale) / 2.0;
+                
+                vec2 pos = v / scale;
+                
+                vec2 p = (floor(pos) + 0.5) / r;
+                
+                vec2 fp = fract(pos);
+                if (scale > 10.0 && (fp.x < 0.1 || fp.y < 0.1)) {
+                    gl_FragColor = vec4(0.1, 0.1, 0.105, 1.0);
+                }
+                else if (pos.x < buffer_scale.x && pos.y < buffer_scale.y && pos.x >= 0.0 && pos.y >= 0.0) {
+                    vec4 color = texture2D(u_texture, p);
+                    gl_FragColor = bool(color.r) ? vec4(1.0, 1.0, 1.0, 1.0) : vec4(0.05, 0.05, 0.05, 1.0);
+                }
+            }
+        </script>
+    </body>
+</html>
