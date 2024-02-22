@@ -9,6 +9,10 @@
         <div id="controlls">
             D - Next step
             <br>
+            N - Randomize
+            <br>
+            R - Reset
+            <br>
             Space - Play/Stop
             <br>
             Click - Add/Remove cell
@@ -106,6 +110,27 @@
                 else {
                     gl_FragColor = color;
                 }
+            }
+        </script>
+        
+        <script id="shader-noise-frag" type="x-shader/x-fragment">
+            precision mediump float;
+            varying vec2 v_texcoord;
+
+            uniform sampler2D u_texture;
+            uniform float seed;
+            uniform vec2 buffer_scale;
+            
+            float rand(vec2 n) { 
+                return fract(sin(dot(n, vec2(12.9898, 4.1414))) * 43758.5453);
+            }
+
+            void main() {
+                vec2 coord = v_texcoord * buffer_scale;
+                float noise = fract(rand(coord) * seed);
+                noise = noise < 0.5 ? 0.0 : 1.0;
+                
+                gl_FragColor = vec4(noise, noise, noise, 1.0);
             }
         </script>
         

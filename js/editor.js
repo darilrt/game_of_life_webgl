@@ -25,6 +25,11 @@ var shader = {
         attr: {},
         uniform: {}
     },
+    noise: {
+        program: null,
+        attr: {},
+        uniform: {}
+    },
     editor: {
         program: null,
         attr: {},
@@ -168,6 +173,23 @@ function add_point() {
     }
 }
 
+function noise() {
+    {
+        gl.viewport(0, 0, editor.grid_size.x, editor.grid_size.y);
+        gl.clearColor(0, 0, 0, 1.0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        
+        gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer.fbo2);
+        gl.bindTexture(gl.TEXTURE_2D, framebuffer.texture1);
+        
+        draw_rect(shader.noise, () => {
+            gl.uniform1f(shader.noise.uniform.seed, Math.random() * 5000);
+        });
+        
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    }
+}
+
 function event_init() {
     window.addEventListener("wheel", e => {
         const delta = Math.sign(e.deltaY) * 2;
@@ -206,6 +228,10 @@ function event_init() {
             
             case "KeyR":
                 prerender();
+                break;
+
+            case "KeyN":
+                noise();
                 break;
             
             case "Space":
@@ -319,7 +345,12 @@ function shader_init() {
     shader.editor.uniform.offset = gl.getUniformLocation(shader.editor.program, 'offset');
     shader.editor.uniform.scale = gl.getUniformLocation(shader.editor.program, 'scale');
     shader.editor.uniform.buffer_scale = gl.getUniformLocation(shader.editor.program, 'buffer_scale');
-    
+
+    shader.noise.program = shader_create_program("vertex-shader", "shader-noise-frag");
+    shader.noise.attr.position = gl.getAttribLocation(shader.noise.program, 'position');
+    shader.noise.attr.texcoord = gl.getAttribLocation(shader.noise.program, 'texcoord');
+    shader.noise.uniform.buffer_scale = gl.getUniformLocation(shader.noise.program, 'buffer_scale');
+    shader.noise.uniform.seed = gl.getUniformLocation(shader.noise.program, 'seed');
 }
 
 function shader_create_program(vert, frag) {
